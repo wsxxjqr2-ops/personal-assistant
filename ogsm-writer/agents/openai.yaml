@@ -1,0 +1,3 @@
+display_name: OGSM Writer
+short_description: Write formal OGSM plans
+default_prompt: Use this skill to draft or generate a formal OGSM table from a performance contract, OGSM template, and project/task tracker. Keep strategies engineering/project-management oriented and align owners to project/module responsibility.

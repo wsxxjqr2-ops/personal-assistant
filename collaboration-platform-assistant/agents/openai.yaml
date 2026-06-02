@@ -1,0 +1,4 @@
+interface:
+  display_name: "协作平台助手"
+  short_description: "读取和整理 PIX 协作平台任务、项目和周报信息。"
+  default_prompt: "使用协作平台助手分析我的任务、项目进展或生成工作汇总。"
