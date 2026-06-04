@@ -85,4 +85,11 @@ For task creation, task updates, and time logging, first present:
 - note/comment to add
 - before/after values when known
 
+Time-entry comment format:
+
+- Always write Chinese numbered comments in this style: `1、...；2、...；3、...。`
+- Do not use a single unnumbered summary sentence for time entries.
+- The number of items is flexible and should match the actual work, typically 2-4 items.
+- End intermediate items with `；` and the final item with `。`.
+
 Only after the user confirms, call the API with `--confirm`. Prefer a single issue/time-entry update at a time unless the user requests bulk changes.

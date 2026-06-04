@@ -146,7 +146,9 @@ When a project has no commits by the target person for the date, write `无丁�
 
 When preparing work-log comments:
 
-- Use concrete numbered Chinese entries: `1、...；2、...；3、...。`
+- Use concrete numbered Chinese entries for every time-entry comment: `1、...；2、...；3、...。`
+- The numbered format is mandatory even for short comments; do not write a single unnumbered summary sentence.
+- The number of entries is not fixed. Use as many items as the actual work needs, usually 2-4, and end the final item with `。`.
 - 2-3 hours: use 2-3 entries.
 - 4-8 hours: use 3-4 entries.
 - Avoid file-list-only comments. Translate code changes into business/engineering work.
