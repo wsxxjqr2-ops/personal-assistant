@@ -152,6 +152,8 @@ When preparing work-log comments:
 - 2-3 hours: use 2-3 entries.
 - 4-8 hours: use 3-4 entries.
 - Avoid file-list-only comments. Translate code changes into business/engineering work.
+- If commit subjects, branch names, or source evidence are in English, translate them into natural Chinese before writing time-entry comments.
+- Never paste raw English commit subjects into Chinese time-entry comments unless the English text is a product name, API name, file name, protocol, or other proper noun that should remain unchanged.
 
 Before creating time entries:
 

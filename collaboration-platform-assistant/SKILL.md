@@ -91,6 +91,8 @@ Time-entry comment format:
 - Do not use a single unnumbered summary sentence for time entries.
 - The number of items is flexible and should match the actual work, typically 2-4 items.
 - End intermediate items with `；` and the final item with `。`.
+- If source evidence or commit subjects are in English, translate them into natural Chinese before writing the comment.
+- Do not paste raw English commit subjects into time-entry comments unless the English text is a product name, API name, file name, protocol, or other proper noun.
 
 Time-entry issue state requirements:
 
