@@ -92,4 +92,11 @@ Time-entry comment format:
 - The number of items is flexible and should match the actual work, typically 2-4 items.
 - End intermediate items with `；` and the final item with `。`.
 
+Time-entry issue state requirements:
+
+- Always inspect the issue status and done ratio before logging time.
+- If the issue status is `新建`, update it to `进行中` before or together with logging time.
+- If the issue done ratio is below `10%`, update it to at least `10%` before or together with logging time.
+- Do not log time against a `新建` issue or a `0%` issue without first applying these updates.
+
 Only after the user confirms, call the API with `--confirm`. Prefer a single issue/time-entry update at a time unless the user requests bulk changes.

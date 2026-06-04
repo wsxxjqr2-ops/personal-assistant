@@ -153,6 +153,13 @@ When preparing work-log comments:
 - 4-8 hours: use 3-4 entries.
 - Avoid file-list-only comments. Translate code changes into business/engineering work.
 
+Before creating time entries:
+
+- Always inspect the target issue status and done ratio.
+- If the target issue status is `新建`, update it to `进行中` before or together with logging time.
+- If the target issue done ratio is below `10%`, update it to at least `10%` before or together with logging time.
+- Do not log time against a `新建` issue or a `0%` issue without first applying these status/progress updates.
+
 Good example:
 
 ```text
