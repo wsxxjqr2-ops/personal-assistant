@@ -117,6 +117,7 @@ Focus on controllers, services, mappers, migrations, jobs, tests, config, docs, 
 10. If matching to collaboration-platform tasks, use `collaboration-platform-assistant` rules:
 
 - Prefer same target version, feature name, assignee, category, and date range.
+- Match by semantic fit first; do not exclude closed issues. Closed tasks can be reused for time entries when the work clearly belongs to that task.
 - Search by concrete terms from commits, such as `发票`, `MQTT`, `语音`, `自动播报`, `权益`, `退款`.
 - Do not create or update time entries without explicit user confirmation.
 

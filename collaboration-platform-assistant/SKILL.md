@@ -75,9 +75,12 @@ python3 scripts/redmine_issues.py refs categories --project PIX
    - Use `web-access` when relying on browser login, saved custom queries, or UI-only context.
 3. Collect only the needed data. For "my work", start with assigned issues across all statuses or open statuses depending on the user's wording.
    - For project/OGSM evidence, do not default to only Ding's assigned issues. Query the whole target version/category unless the user explicitly asks for "my tasks".
-4. Group by `fixed_version` first, then `category` or `项目阶段` when useful.
-5. Separate active work from closed/canceled work.
-6. In reports, highlight overdue/open items, upcoming due dates, and projects with many active tasks.
+4. When matching work to issues for time logging, search across all statuses (`status_id=*`) and match by semantic fit first.
+   - Do not exclude closed issues. Closed tasks can be reused for time entries when the work clearly belongs to that task.
+   - Only create a new task when no existing issue, including closed issues, matches the work well.
+5. Group by `fixed_version` first, then `category` or `项目阶段` when useful.
+6. Separate active work from closed/canceled work in reports, but do not treat closed status as a blocker for time-entry matching.
+7. In reports, highlight overdue/open items, upcoming due dates, and projects with many active tasks.
 
 ## Writing Updates
 
