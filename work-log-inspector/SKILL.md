@@ -161,6 +161,7 @@ Before creating time entries:
 - If the target issue status is `新建`, update it to `进行中` before or together with logging time.
 - If the target issue done ratio is below `10%`, update it to at least `10%` before or together with logging time.
 - Do not log time against a `新建` issue or a `0%` issue without first applying these status/progress updates.
+- If canceling a mismatched issue discovered during work-log matching, use collaboration-platform status `取消` with `status_id: 5` and add a concise note.
 
 Good example:
 

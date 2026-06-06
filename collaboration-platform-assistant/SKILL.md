@@ -24,6 +24,11 @@ description: "Use for Ding Changjiang's PIX/RUBYLOFT collaboration platform work
 - `跟踪` / `tracker` is the task type, such as 功能, 支持, 设计, Bug, or 绩效目标.
 - `项目阶段` is a custom field that often captures lifecycle stage, such as 方案设计, 产品开发, 综合测试.
 
+## Known Field IDs
+
+- Issue status `取消` has id `5`; use `status_id: 5` when canceling an issue through the API.
+- Issue progress uses `done_ratio` as an integer percentage, such as `10`, `90`, or `100`.
+
 ## API Quick Start
 
 Read `references/api.md` before doing API work beyond simple issue lookup.
@@ -100,5 +105,6 @@ Time-entry issue state requirements:
 - If the issue status is `新建`, update it to `进行中` before or together with logging time.
 - If the issue done ratio is below `10%`, update it to at least `10%` before or together with logging time.
 - Do not log time against a `新建` issue or a `0%` issue without first applying these updates.
+- When the user asks to cancel an issue, set status to `取消` using `status_id: 5` and add a short note explaining the cancellation reason when known.
 
 Only after the user confirms, call the API with `--confirm`. Prefer a single issue/time-entry update at a time unless the user requests bulk changes.
