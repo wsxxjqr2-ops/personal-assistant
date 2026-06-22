@@ -21,6 +21,7 @@ description: "Use for Ding Changjiang's PIX/RUBYLOFT collaboration platform work
 - `项目` is the broad platform project space, usually `PIX`.
 - `目标版本` / `fixed_version` is the concrete project, delivery package, or milestone.
 - `类别` / `category` is the work module or stage inside a target version, such as cloud, frontend, design, testing, or support.
+- For meeting, communication, sync, alignment, or demand-alignment tasks, prefer category `工作协作` even when the target version belongs to a specific product project.
 - `跟踪` / `tracker` is the task type, such as 功能, 支持, 设计, Bug, or 绩效目标.
 - `项目阶段` is a custom field that often captures lifecycle stage, such as 方案设计, 产品开发, 综合测试.
 

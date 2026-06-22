@@ -26,6 +26,7 @@ PROJECTS = OrderedDict(
             ],
         ),
         ("rt_server", ["~/code/rt_server", "~/code/rt_server/rt_web"]),
+        ("自动化部署平台", ["~/code/dagu"]),
     ]
 )
 
