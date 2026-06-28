@@ -26,6 +26,14 @@ PROJECTS = OrderedDict(
             ],
         ),
         ("rt_server", ["~/code/rt_server", "~/code/rt_server/rt_web"]),
+        (
+            "GB28181",
+            [
+                "~/code/gb28181/gb28181-client",
+                "~/code/gb28181/wvp-gb28181-pro",
+            ],
+        ),
+        ("pix-ehr", ["~/code/pix-ehr"]),
         ("自动化部署平台", ["~/code/dagu"]),
     ]
 )

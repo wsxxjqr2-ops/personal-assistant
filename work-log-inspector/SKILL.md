@@ -1,6 +1,6 @@
 ---
 name: work-log-inspector
-description: "Use when the user asks to inspect, summarize, or fill Chinese work logs from code activity. Covers checking Ding Changjiang's remote commits in ~/code projects such as pix-microservice(s), ai_voice_bot_server, rt_server, and dagu; grouping front-end/back-end repos by business project; reading commit diffs to produce detailed work-log text; matching work to collaboration-platform tasks; and preparing time-entry comments."
+description: "Use when the user asks to inspect, summarize, or fill Chinese work logs from code activity. Covers checking Ding Changjiang's remote commits in ~/code projects such as pix-microservice(s), ai_voice_bot_server, rt_server, dagu, GB28181, and pix-ehr; grouping front-end/back-end repos by business project; reading commit diffs to produce detailed work-log text; matching work to collaboration-platform tasks; and preparing time-entry comments."
 ---
 
 # Work Log Inspector
@@ -45,6 +45,11 @@ Default repositories:
 - `rt_server`
   - `~/code/rt_server`
   - `~/code/rt_server/rt_web`
+- `GB28181`
+  - `~/code/gb28181/gb28181-client`
+  - `~/code/gb28181/wvp-gb28181-pro`
+- `pix-ehr`
+  - `~/code/pix-ehr`
 - `自动化部署平台`
   - `~/code/dagu`
   - Treat this repository as the automated deployment CI/DI tool when grouping and summarizing work.
