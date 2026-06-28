@@ -29,6 +29,10 @@ Filter by committer date, because that reflects when commits landed in remote hi
 
 Fetch remotes before extracting commits, then query only remote-tracking refs (`refs/remotes/*`). Do not use local-only commits for the work log.
 
+When the user says "推送的内容", "远程仓库存在的记录", or similar, treat the evidence source as commits currently reachable from remote-tracking refs after fetch. Do not use local uncommitted changes, local-only branches, or worktree diffs as work-log evidence unless the user explicitly asks to include local work.
+
+Ordinary Git history records author/committer dates, not the exact push timestamp. If the user asks about actual push time, use hosting-provider events/API where available, or state that Git alone cannot prove push time. Do not equate a commit's committer date with its push time.
+
 Include each repository's remote URL in the evidence gathered, but keep the final work log focused on project tasks unless the user asks for remote URLs.
 
 Treat front-end and back-end repositories under the same business area as one project in the final log.
@@ -163,6 +167,17 @@ When preparing work-log comments:
 - Avoid file-list-only comments. Translate code changes into business/engineering work.
 - If commit subjects, branch names, or source evidence are in English, translate them into natural Chinese before writing time-entry comments.
 - Never paste raw English commit subjects into Chinese time-entry comments unless the English text is a product name, API name, file name, protocol, or other proper noun that should remain unchanged.
+
+When the user asks for "预提交" in the context of collaboration-platform work logs, this means a dry-run proposal for collaboration-platform issue/time-entry fields, not a real submission. Do not create issues, update issues, or log time unless the user explicitly confirms the exact proposal.
+
+For collaboration-platform pre-submit proposals, include:
+
+- matched issue id and title, or proposed new task title if no good match exists
+- project, tracker, fixed version, category, assignee, project stage, task level when known
+- current status, current done ratio, estimated hours, existing spent hours
+- proposed spent date, proposed hours, and exact numbered Chinese time-entry comment
+- required issue updates before time logging, such as `新建 -> 进行中` or `0% -> 至少 10%`
+- risk notes such as proposed spent hours exceeding estimated hours
 
 Before creating time entries:
 
