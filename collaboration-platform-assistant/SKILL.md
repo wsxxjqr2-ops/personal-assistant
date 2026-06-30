@@ -29,6 +29,8 @@ description: "Use for Ding Changjiang's PIX/RUBYLOFT collaboration platform work
 
 - Issue status `取消` has id `5`; use `status_id: 5` when canceling an issue through the API.
 - Issue progress uses `done_ratio` as an integer percentage, such as `10`, `90`, or `100`.
+- Ding Changjiang / `丁 昌江` user id is `51`. For write operations that assign issues to Ding, prefer `--assigned-to 51` over resolving the display name, because `/users.json` may return HTTP 403 for the current API key even though issue create/update/time endpoints work.
+- Issue category deletion uses `DELETE /issue_categories/:id.json`. Do not use `/projects/:project_id/issue_categories/:id.json`; that path returned 404 on this Redmine instance. Before deleting a category, query all statuses for that category and move or confirm zero referencing issues.
 
 ## API Quick Start
 
