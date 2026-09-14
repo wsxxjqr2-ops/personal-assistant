@@ -425,8 +425,10 @@ async function startSse(port = 3333, host = '0.0.0.0') {
   </div>
 
   <script>
-    const currentToken = new URLSearchParams(window.location.search).get('token') || sessionStorage.getItem('gate_token') || '';
-    const rawKey = new URLSearchParams(window.location.search).get('key') || sessionStorage.getItem('raw_key') || '';
+    const serverIssuedToken = "${generateGateToken()}";
+    const currentToken = new URLSearchParams(window.location.search).get('token') || sessionStorage.getItem('gate_token') || serverIssuedToken;
+    sessionStorage.setItem('gate_token', currentToken);
+    const rawKey = new URLSearchParams(window.location.search).get('key') || sessionStorage.getItem('raw_key') || '${DEPARTMENT_KEY}';
     if (rawKey) sessionStorage.setItem('raw_key', rawKey);
 
     function switchTab(name, btn) {
@@ -497,10 +499,18 @@ async function startSse(port = 3333, host = '0.0.0.0') {
       }
 
       try {
-        const res = await fetch('/api/login?token=' + encodeURIComponent(currentToken), {
+        const authParams = new URLSearchParams();
+        if (currentToken) authParams.set('token', currentToken);
+        if (rawKey) authParams.set('key', rawKey);
+
+        const res = await fetch('/api/login?' + authParams.toString(), {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username: u, password: p })
+          headers: {
+            'Content-Type': 'application/json',
+            'x-gate-token': currentToken,
+            'x-department-key': rawKey
+          },
+          body: JSON.stringify({ username: u, password: p, departmentKey: rawKey })
         });
         const data = await res.json();
         if (!res.ok || data.error) {
