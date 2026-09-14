@@ -254,12 +254,12 @@ async function startSse(port = 3333, host = '0.0.0.0') {
     button.btn-primary:hover { background: #1d4ed8; }
     .result-box { display: none; background: #f0fdf4; border: 1px solid #bbf7d0; padding: 20px; border-radius: 10px; margin-top: 20px; }
     .error-box { display: none; background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; padding: 12px; border-radius: 6px; margin-top: 12px; }
-    code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+    p code, li code, span code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; background: #e2e8f0; color: #0f172a; padding: 2px 6px; border-radius: 4px; font-size: 13px; }
 
     /* URL Highlight Box */
     .url-highlight { background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 14px 16px; margin-bottom: 20px; }
     .url-input-group { display: flex; gap: 8px; margin-top: 6px; }
-    .url-input-group input { flex: 1; font-family: monospace; font-size: 13px; padding: 8px 10px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; }
+    .url-input-group input { flex: 1; font-family: monospace; font-size: 13px; padding: 8px 10px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; color: #0f172a; font-weight: 500; }
     .btn-copy { background: #0f172a; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; white-space: nowrap; transition: background 0.2s; }
     .btn-copy:hover { background: #334155; }
 
@@ -274,7 +274,8 @@ async function startSse(port = 3333, host = '0.0.0.0') {
 
     /* Code Block & Copy Button */
     .code-wrapper { position: relative; margin-top: 6px; margin-bottom: 14px; }
-    .code-wrapper pre { margin: 0; background: #0f172a; color: #f8fafc; padding: 14px; padding-right: 90px; border-radius: 8px; overflow-x: auto; font-size: 13px; line-height: 1.5; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+    .code-wrapper pre { margin: 0; background: #0f172a; color: #38bdf8; padding: 14px; padding-right: 90px; border-radius: 8px; overflow-x: auto; font-size: 13px; line-height: 1.6; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+    .code-wrapper pre code { background: transparent !important; color: #38bdf8 !important; padding: 0 !important; border: none !important; border-radius: 0 !important; font-size: 13px; display: inline-block; white-space: pre-wrap; word-break: break-all; }
     .code-copy-btn { position: absolute; top: 10px; right: 10px; background: rgba(255, 255, 255, 0.15); color: #f8fafc; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 5px; padding: 5px 10px; font-size: 12px; cursor: pointer; transition: all 0.2s; }
     .code-copy-btn:hover { background: rgba(255, 255, 255, 0.3); }
   </style>
