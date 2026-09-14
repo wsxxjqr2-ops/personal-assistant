@@ -64,23 +64,49 @@ pm2 startup
 
 ## 三、部门同事客户端接入指南
 
-服务在 AI 服务器上启动后，端口为 `3333`（端点地址：`http://<ai-server-ip>:3333/sse`）。
-同事们在各自常用的 AI 工具中配置即可：
+访问 AI 服务器的部门配置中心门户：`http://<ai-server-ip>:3333/`，输入部门口令并验证协作平台账号后，系统会自动为您生成**个人专属免密 URL**。
 
-### 1. Cursor 配置
+也可直接将专属 URL 填入以下各大常用 AI 编程客户端：
+
+### 1. Codex (OpenAI Codex CLI / IDE)
+- **命令行一键添加（推荐）**：
+  ```bash
+  codex mcp add pix-collaboration --url "http://<ai-server-ip>:3333/sse?key=<auth_key>&apiKey=<user_api_key>"
+  ```
+- **或者在 `~/.codex/config.toml` 中配置**：
+  ```toml
+  [mcp_servers.pix-collaboration]
+  url = "http://<ai-server-ip>:3333/sse?key=<auth_key>&apiKey=<user_api_key>"
+  ```
+
+### 2. Antigravity / Gemini (Google)
+- **全局配置文件配置（推荐）**：编辑 `~/.gemini/config/mcp_config.json`
+  ```json
+  {
+    "mcpServers": {
+      "pix-collaboration": {
+        "serverUrl": "http://<ai-server-ip>:3333/sse?key=<auth_key>&apiKey=<user_api_key>"
+      }
+    }
+  }
+  ```
+- **或者在 Antigravity 界面添加**：
+  点击右上角 **Additional Options (...) > MCP Servers** -> 添加名为 `pix-collaboration`，Server URL 填入专属连接地址。
+
+### 3. Cursor 配置
 打开 Cursor 设置 -> **Features** -> **MCP Servers** -> **+ Add New MCP Server**：
 - **Name**: `pix-collaboration`
 - **Type**: `sse`
-- **URL**: `http://<ai-server-ip>:3333/sse`
+- **URL**: `http://<ai-server-ip>:3333/sse?key=<auth_key>&apiKey=<user_api_key>`
 
-### 2. Claude Desktop 配置
+### 4. Claude Desktop 配置
 编辑 `~/Library/Application Support/Claude/claude_desktop_config.json`（macOS）或 `%APPDATA%\Claude\claude_desktop_config.json`（Windows）：
 
 ```json
 {
   "mcpServers": {
     "pix-collaboration": {
-      "url": "http://<ai-server-ip>:3333/sse"
+      "url": "http://<ai-server-ip>:3333/sse?key=<auth_key>&apiKey=<user_api_key>"
     }
   }
 }

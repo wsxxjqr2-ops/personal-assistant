@@ -248,7 +248,7 @@ async function startSse(port = 3333, host = '0.0.0.0') {
   <title>PIX 协作平台 MCP 服务 - 部门接入中心</title>
   <style>
     * { box-sizing: border-box; }
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 800px; margin: 30px auto; padding: 0 20px; color: #1e293b; line-height: 1.6; background: #f8fafc; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 860px; margin: 30px auto; padding: 0 20px; color: #1e293b; line-height: 1.6; background: #f8fafc; }
     .header { background: #fff; padding: 24px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
     h1 { margin: 0 0 8px; font-size: 24px; color: #0f172a; }
     .badge { display: inline-block; background: #10b981; color: white; padding: 2px 8px; border-radius: 9999px; font-size: 12px; font-weight: 600; vertical-align: middle; }
@@ -257,12 +257,33 @@ async function startSse(port = 3333, host = '0.0.0.0') {
     .form-group { margin-bottom: 14px; }
     label { display: block; font-weight: 600; font-size: 14px; margin-bottom: 6px; }
     input[type="text"], input[type="password"] { width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; }
-    button { background: #2563eb; color: white; border: none; padding: 10px 20px; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
-    button:hover { background: #1d4ed8; }
-    pre { background: #0f172a; color: #f8fafc; padding: 16px; border-radius: 8px; overflow-x: auto; font-size: 13px; line-height: 1.5; }
-    .result-box { display: none; background: #ecfdf5; border: 1px solid #a7f3d0; padding: 16px; border-radius: 8px; margin-top: 16px; }
+    button.btn-primary { background: #2563eb; color: white; border: none; padding: 10px 20px; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+    button.btn-primary:hover { background: #1d4ed8; }
+    .result-box { display: none; background: #f0fdf4; border: 1px solid #bbf7d0; padding: 20px; border-radius: 10px; margin-top: 20px; }
     .error-box { display: none; background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; padding: 12px; border-radius: 6px; margin-top: 12px; }
-    code { font-family: monospace; background: #e2e8f0; padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+    code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+
+    /* URL Highlight Box */
+    .url-highlight { background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 14px 16px; margin-bottom: 20px; }
+    .url-input-group { display: flex; gap: 8px; margin-top: 6px; }
+    .url-input-group input { flex: 1; font-family: monospace; font-size: 13px; padding: 8px 10px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; }
+    .btn-copy { background: #0f172a; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; white-space: nowrap; transition: background 0.2s; }
+    .btn-copy:hover { background: #334155; }
+
+    /* Tabs Layout */
+    .tabs-nav { display: flex; gap: 6px; border-bottom: 2px solid #e2e8f0; margin-bottom: 16px; overflow-x: auto; }
+    .tab-btn { background: none; border: none; padding: 10px 18px; font-size: 14px; font-weight: 600; color: #64748b; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; border-radius: 6px 6px 0 0; transition: all 0.2s; }
+    .tab-btn:hover { color: #0f172a; background: #f1f5f9; }
+    .tab-btn.active { color: #2563eb; border-bottom-color: #2563eb; background: #eff6ff; }
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; }
+    .tab-desc { font-size: 13px; color: #475569; margin: 4px 0 8px; }
+
+    /* Code Block & Copy Button */
+    .code-wrapper { position: relative; margin-top: 6px; margin-bottom: 14px; }
+    .code-wrapper pre { margin: 0; background: #0f172a; color: #f8fafc; padding: 14px; padding-right: 90px; border-radius: 8px; overflow-x: auto; font-size: 13px; line-height: 1.5; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+    .code-copy-btn { position: absolute; top: 10px; right: 10px; background: rgba(255, 255, 255, 0.15); color: #f8fafc; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 5px; padding: 5px 10px; font-size: 12px; cursor: pointer; transition: all 0.2s; }
+    .code-copy-btn:hover { background: rgba(255, 255, 255, 0.3); }
   </style>
 </head>
 <body>
@@ -272,8 +293,8 @@ async function startSse(port = 3333, host = '0.0.0.0') {
   </div>
 
   <div class="card">
-    <h2>🔑 步骤一：获取个人专属连接配置（一次配置，永久免密）</h2>
-    <p style="color: #64748b; font-size: 14px;">输入你的协作平台账号密码，系统将自动换取你的专属 API Key 并生成专属配置：</p>
+    <h2>🔑 步骤一：获取个人专属免密配置</h2>
+    <p style="color: #64748b; font-size: 14px;">输入你的协作平台账号密码，系统将自动换取个人 API Key 并生成各客户端专属配置（一次配置，永久免密）：</p>
     
     <div class="form-group">
       <label>协作平台用户名</label>
@@ -283,35 +304,166 @@ async function startSse(port = 3333, host = '0.0.0.0') {
       <label>协作平台密码</label>
       <input type="password" id="password" placeholder="输入密码">
     </div>
-    <button onclick="doLogin()">生成我的专属配置</button>
+    <button class="btn-primary" onclick="doLogin()">生成我的专属配置</button>
 
     <div id="error-box" class="error-box"></div>
 
     <div id="result-box" class="result-box">
       <h3 style="margin-top:0; color:#065f46;">🎉 验证成功！欢迎，<span id="res-name"></span></h3>
-      <p style="font-size:14px; color:#047857;">已为你生成专属配置。复制下方代码直接粘贴到客户端即可永久免密使用：</p>
+      <p style="font-size:14px; color:#047857; margin-bottom: 14px;">
+        已为你生成个人专属配置。选择你使用的客户端复制即可：
+      </p>
       
-      <p><strong>Cursor 配置（Settings -> Features -> MCP Servers）：</strong></p>
-      <pre id="cursor-cfg"></pre>
+      <!-- 个人专属 URL -->
+      <div class="url-highlight">
+        <div style="font-weight: 600; font-size: 13px; color: #0f172a;">🔗 个人专属 MCP 端点 URL (SSE)：</div>
+        <div class="url-input-group">
+          <input type="text" id="raw-url-input" readonly>
+          <button type="button" class="btn-copy" onclick="copyTextFromElement('raw-url-input', this)">复制 URL</button>
+        </div>
+      </div>
 
-      <p><strong>Claude Desktop 配置（claude_desktop_config.json）：</strong></p>
-      <pre id="claude-cfg"></pre>
+      <!-- 客户端 Tab 选项卡 -->
+      <div class="tabs-nav">
+        <button class="tab-btn active" onclick="switchTab('codex', this)">Codex</button>
+        <button class="tab-btn" onclick="switchTab('antigravity', this)">Antigravity / Gemini</button>
+        <button class="tab-btn" onclick="switchTab('cursor', this)">Cursor</button>
+        <button class="tab-btn" onclick="switchTab('claude', this)">Claude Desktop</button>
+      </div>
+
+      <!-- Codex Pane -->
+      <div id="tab-codex" class="tab-pane active">
+        <p><strong>方式 A：终端命令行一键添加（推荐，最快）</strong></p>
+        <p class="tab-desc">在终端直接执行以下命令：</p>
+        <div class="code-wrapper">
+          <pre><code id="codex-cli-cfg"></code></pre>
+          <button class="code-copy-btn" onclick="copyCodeFromElement('codex-cli-cfg', this)">复制命令</button>
+        </div>
+
+        <p style="margin-top: 14px;"><strong>方式 B：配置文件添加 (<code>~/.codex/config.toml</code>)</strong></p>
+        <p class="tab-desc">将以下内容复制并追加到 <code>~/.codex/config.toml</code> 末尾：</p>
+        <div class="code-wrapper">
+          <pre><code id="codex-toml-cfg"></code></pre>
+          <button class="code-copy-btn" onclick="copyCodeFromElement('codex-toml-cfg', this)">复制 TOML</button>
+        </div>
+      </div>
+
+      <!-- Antigravity / Gemini Pane -->
+      <div id="tab-antigravity" class="tab-pane">
+        <p><strong>方式 A：全局配置文件添加（推荐）</strong></p>
+        <p class="tab-desc">在全局配置 <code>~/.gemini/config/mcp_config.json</code> 的 <code>mcpServers</code> 下添加：</p>
+        <div class="code-wrapper">
+          <pre><code id="antigravity-cfg"></code></pre>
+          <button class="code-copy-btn" onclick="copyCodeFromElement('antigravity-cfg', this)">复制 JSON</button>
+        </div>
+
+        <p style="margin-top: 14px;"><strong>方式 B：IDE 界面添加</strong></p>
+        <p class="tab-desc">
+          在 Antigravity 界面右上角点击 <strong>Additional Options (...) > MCP Servers</strong>，添加：<br>
+          • <strong>Server Name</strong>: <code>pix-collaboration</code><br>
+          • <strong>Server URL</strong>: 复制上方【个人专属 MCP 端点 URL】
+        </p>
+      </div>
+
+      <!-- Cursor Pane -->
+      <div id="tab-cursor" class="tab-pane">
+        <p><strong>Cursor 界面添加：</strong></p>
+        <p class="tab-desc">
+          打开 Cursor -> <strong>Settings</strong> (Cmd/Ctrl + ,) -> <strong>Features</strong> -> <strong>MCP Servers</strong> -> 点击 <strong>+ Add New MCP Server</strong>：<br>
+          • <strong>Name</strong>: <code>pix-collaboration</code><br>
+          • <strong>Type</strong>: <code>sse</code><br>
+          • <strong>URL</strong>: 复制上方【个人专属 MCP 端点 URL】
+        </p>
+        <p style="margin-top: 14px;"><strong>或使用配置对象：</strong></p>
+        <div class="code-wrapper">
+          <pre><code id="cursor-cfg"></code></pre>
+          <button class="code-copy-btn" onclick="copyCodeFromElement('cursor-cfg', this)">复制 JSON</button>
+        </div>
+      </div>
+
+      <!-- Claude Desktop Pane -->
+      <div id="tab-claude" class="tab-pane">
+        <p><strong>Claude Desktop 配置文件添加：</strong></p>
+        <p class="tab-desc">
+          在配置文件 <code>claude_desktop_config.json</code> 中添加以下内容：<br>
+          • macOS: <code>~/Library/Application Support/Claude/claude_desktop_config.json</code><br>
+          • Windows: <code>%APPDATA%\\Claude\\claude_desktop_config.json</code>
+        </p>
+        <div class="code-wrapper">
+          <pre><code id="claude-cfg"></code></pre>
+          <button class="code-copy-btn" onclick="copyCodeFromElement('claude-cfg', this)">复制 JSON</button>
+        </div>
+      </div>
     </div>
   </div>
 
   <div class="card">
     <h2>💬 步骤二：在 AI 对话中直接使用</h2>
-    <p>配置好后，直接在 Cursor 或 Claude 对话框中与 AI 自然交流：</p>
+    <p>配置好后，直接在 Codex、Cursor、Antigravity / Gemini 或 Claude 对话框中与 AI 自然交流：</p>
     <ul>
       <li><code>查一下我当前有哪些进行中的任务</code></li>
       <li><code>帮我在 #xxxxx 任务上填报今天 2 小时工时，备注是...</code></li>
       <li><code>汇总我本周的工时明细</code></li>
+      <li><code>搜索“云控”或“底盘”相关的任务</code></li>
     </ul>
   </div>
 
   <script>
     const currentToken = new URLSearchParams(window.location.search).get('token') || sessionStorage.getItem('gate_token') || '';
     const rawKey = sessionStorage.getItem('raw_key') || '';
+
+    function switchTab(name, btn) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      const target = document.getElementById('tab-' + name);
+      if (target) target.classList.add('active');
+    }
+
+    function copyText(text, btn) {
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(() => showCopied(btn)).catch(() => fallbackCopy(text, btn));
+      } else {
+        fallbackCopy(text, btn);
+      }
+    }
+
+    function fallbackCopy(text, btn) {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try {
+        document.execCommand('copy');
+        showCopied(btn);
+      } catch (e) {
+        alert('复制失败，请手动长按复制');
+      }
+      document.body.removeChild(ta);
+    }
+
+    function showCopied(btn) {
+      const orig = btn.innerText;
+      btn.innerText = '已复制 ✓';
+      const origBg = btn.style.backgroundColor;
+      btn.style.backgroundColor = '#10b981';
+      setTimeout(() => {
+        btn.innerText = orig;
+        btn.style.backgroundColor = origBg;
+      }, 2000);
+    }
+
+    function copyTextFromElement(id, btn) {
+      const el = document.getElementById(id);
+      if (el) copyText(el.value, btn);
+    }
+
+    function copyCodeFromElement(id, btn) {
+      const el = document.getElementById(id);
+      if (el) copyText(el.innerText, btn);
+    }
 
     async function doLogin() {
       const u = document.getElementById('username').value.trim();
@@ -340,19 +492,35 @@ async function startSse(port = 3333, host = '0.0.0.0') {
 
         // Use rawKey if user entered it, otherwise pass token
         const authParam = rawKey ? ('key=' + encodeURIComponent(rawKey)) : ('token=' + encodeURIComponent(currentToken));
-        const myUrl = window.location.origin + '/sse?' + authParam + '&apiKey=' + data.user.apiKey;
+        const myUrl = window.location.origin + '/sse?' + authParam + '&apiKey=' + encodeURIComponent(data.user.apiKey);
         document.getElementById('res-name').innerText = data.user.fullName + ' (' + data.user.username + ')';
+        document.getElementById('raw-url-input').value = myUrl;
 
+        // 1. Codex CLI & TOML
+        document.getElementById('codex-cli-cfg').innerText = 'codex mcp add pix-collaboration --url "' + myUrl + '"';
+        document.getElementById('codex-toml-cfg').innerText = '[mcp_servers.pix-collaboration]\\nurl = "' + myUrl + '"';
+
+        // 2. Antigravity / Gemini JSON
+        document.getElementById('antigravity-cfg').innerText = JSON.stringify({
+          mcpServers: {
+            "pix-collaboration": {
+              "serverUrl": myUrl
+            }
+          }
+        }, null, 2);
+
+        // 3. Cursor JSON
         document.getElementById('cursor-cfg').innerText = JSON.stringify({
           name: "pix-collaboration",
           type: "sse",
           url: myUrl
         }, null, 2);
 
+        // 4. Claude Desktop JSON
         document.getElementById('claude-cfg').innerText = JSON.stringify({
           mcpServers: {
             "pix-collaboration": {
-              url: myUrl
+              "url": myUrl
             }
           }
         }, null, 2);
