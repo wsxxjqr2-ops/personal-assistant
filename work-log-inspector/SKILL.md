@@ -126,7 +126,7 @@ Focus on controllers, services, mappers, migrations, jobs, tests, config, docs, 
 
 9. Deduplicate repeated commit subjects within a project only when they are identical or clearly the same task. Translate English commit subjects into concise Chinese task descriptions instead of copying the English subject verbatim.
 
-10. If matching to collaboration-platform tasks, use `collaboration-platform-assistant` rules:
+10. If matching to collaboration-platform tasks, use `pix-collaboration` MCP tools (`query_my_issues`, `search_issues`, `get_issue_detail`, `log_work_time`):
 
 - Prefer same target version, feature name, assignee, category, and date range.
 - Match by semantic fit first; do not exclude closed issues. Closed tasks can be reused for time entries when the work clearly belongs to that task.
