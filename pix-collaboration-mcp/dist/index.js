@@ -4,11 +4,13 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import express from 'express';
 import cors from 'cors';
+import rateLimit from 'express-rate-limit';
 import { AuthManager } from './auth.js';
 import { registerAuthTools } from './tools/auth.js';
 import { registerIssueTools } from './tools/issues.js';
 import { registerTimeEntryTools } from './tools/time_entries.js';
 import { registerMetadataTools } from './tools/metadata.js';
+const DEPARTMENT_KEY = process.env.DEPARTMENT_KEY || 'pix@team2026';
 function createServer(authManager, getSessionId) {
     const server = new McpServer({
         name: 'pix-collaboration-mcp',
@@ -28,14 +30,33 @@ async function startStdio() {
     console.error('PIX Collaboration MCP Server running via stdio');
 }
 async function startSse(port = 3333, host = '0.0.0.0') {
-    // Pass isServerMode = true so sessions are strictly isolated in-memory per user
     const authManager = new AuthManager(process.env.REDMINE_BASE_URL, true);
     const app = express();
+    app.disable('x-powered-by');
+    // Security Headers
+    app.use((_req, res, next) => {
+        res.setHeader('X-Content-Type-Options', 'nosniff');
+        res.setHeader('X-Frame-Options', 'DENY');
+        res.setHeader('X-XSS-Protection', '1; mode=block');
+        next();
+    });
     app.use(cors());
     app.use(express.json());
     app.use(express.urlencoded({ extended: true }));
+    // Rate Limiter for Login Endpoint: max 5 requests per 15 minutes per IP
+    const loginLimiter = rateLimit({
+        windowMs: 15 * 60 * 1000,
+        max: 5,
+        standardHeaders: true,
+        legacyHeaders: false,
+        message: { error: '登录尝试过于频繁，IP已被临时锁定15分钟以防暴力破解，请稍后重试。' },
+    });
     const sessions = new Map();
-    // Health check endpoint
+    function isKeyValid(req) {
+        const key = (req.query.key || req.headers['x-department-key'] || req.body?.departmentKey);
+        return key === DEPARTMENT_KEY;
+    }
+    // Health check endpoint (lightweight, anonymous status)
     app.get('/health', (_req, res) => {
         res.json({
             status: 'ok',
@@ -44,15 +65,18 @@ async function startSse(port = 3333, host = '0.0.0.0') {
             time: new Date().toISOString(),
         });
     });
-    // API for Web Login to get personal connection URL
-    app.post('/api/login', async (req, res) => {
+    // API for Web Login to get personal connection URL (Protected with Rate Limit + Department Key)
+    app.post('/api/login', loginLimiter, async (req, res) => {
+        if (!isKeyValid(req)) {
+            res.status(403).json({ error: '访问被拒绝：缺少或无效的部门访问口令 (Department Key)' });
+            return;
+        }
         const { username, password } = req.body;
         if (!username || !password) {
             res.status(400).json({ error: '请提供用户名和密码' });
             return;
         }
         try {
-            // Authenticate against Redmine
             const session = await authManager.loginWithPassword(username, password);
             res.json({
                 success: true,
@@ -69,20 +93,21 @@ async function startSse(port = 3333, host = '0.0.0.0') {
         }
     });
     // Department Web Setup Portal
-    app.get('/', (_req, res) => {
+    app.get('/', (req, res) => {
         res.send(`
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PIX 协作平台 MCP 服务 - 部门统一接入中心</title>
+  <title>PIX 协作平台 MCP 服务 - 部门接入中心</title>
   <style>
     * { box-sizing: border-box; }
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 800px; margin: 30px auto; padding: 0 20px; color: #1e293b; line-height: 1.6; background: #f8fafc; }
     .header { background: #fff; padding: 24px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
     h1 { margin: 0 0 8px; font-size: 24px; color: #0f172a; }
     .badge { display: inline-block; background: #10b981; color: white; padding: 2px 8px; border-radius: 9999px; font-size: 12px; font-weight: 600; vertical-align: middle; }
+    .badge-lock { background: #6366f1; }
     .card { background: #fff; padding: 24px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
     h2 { font-size: 18px; margin-top: 0; color: #1e293b; border-bottom: 1px solid #f1f5f9; padding-bottom: 10px; }
     .form-group { margin-bottom: 14px; }
@@ -98,52 +123,90 @@ async function startSse(port = 3333, host = '0.0.0.0') {
 </head>
 <body>
   <div class="header">
-    <h1>PIX 协作平台 MCP 服务 <span class="badge">已上线</span></h1>
+    <h1>PIX 协作平台 MCP 服务 <span class="badge">已上线</span> <span class="badge badge-lock">🛡️ 部门安全加固</span></h1>
     <p style="margin: 0; color: #64748b;">面向全员的智能任务管理与工时填报助理服务 (对接 <code>rd.pixmoving.city</code>)</p>
   </div>
 
-  <div class="card">
-    <h2>🔑 方式一：获取专属连接配置（最推荐，一次配置永久免密）</h2>
-    <p style="color: #64748b; font-size: 14px;">输入你的协作平台账号密码，系统将自动换取你的专属 API Key 并生成专属配置：</p>
-    
+  <!-- Gatekeeper Card: Department Access Key -->
+  <div id="gatekeeper-card" class="card" style="display: none;">
+    <h2>🔐 部门访问验证</h2>
+    <p style="color: #64748b; font-size: 14px;">本服务为部门内部服务，请先输入部门统一访问口令 (Department Key)：</p>
     <div class="form-group">
-      <label>协作平台用户名</label>
-      <input type="text" id="username" placeholder="如 dingcj">
+      <label>部门访问口令</label>
+      <input type="password" id="dept-key-input" placeholder="输入部门口令">
     </div>
-    <div class="form-group">
-      <label>协作平台密码</label>
-      <input type="password" id="password" placeholder="输入密码">
-    </div>
-    <button onclick="doLogin()">生成我的专属配置</button>
-
-    <div id="error-box" class="error-box"></div>
-
-    <div id="result-box" class="result-box">
-      <h3 style="margin-top:0; color:#065f46;">🎉 验证成功！欢迎，<span id="res-name"></span></h3>
-      <p style="font-size:14px; color:#047857;">已为你生成专属配置。复制下方代码直接粘贴到客户端即可永久免密使用：</p>
-      
-      <p><strong>Cursor 配置（Settings -> Features -> MCP Servers）：</strong></p>
-      <pre id="cursor-cfg"></pre>
-
-      <p><strong>Claude Desktop 配置（claude_desktop_config.json）：</strong></p>
-      <pre id="claude-cfg"></pre>
-    </div>
+    <button onclick="unlockPortal()">进入接入中心</button>
+    <div id="gate-error" class="error-box"></div>
   </div>
 
-  <div class="card">
-    <h2>💬 方式二：在对话内直接登录（零配置）</h2>
-    <p>如果你不介意每次会话登录，可以直接使用公共端点：</p>
-    <pre>{
-  "mcpServers": {
-    "pix-collaboration": {
-      "url": window.location.origin + "/sse"
-    }
-  }
-}</pre>
-    <p>连上后直接在 AI 聊天框里说：<code>登录协作平台，账号 xxx 密码 xxx</code>，AI 会调用 <code>login</code> 工具为你当前会话独立绑定身份。</p>
+  <!-- Main Content Card (Shown when key is verified) -->
+  <div id="main-content" style="display: none;">
+    <div class="card">
+      <h2>🔑 步骤一：获取个人专属连接配置（一次配置，永久免密）</h2>
+      <p style="color: #64748b; font-size: 14px;">输入你的协作平台账号密码，系统将自动换取你的专属 API Key 并生成专属配置：</p>
+      
+      <div class="form-group">
+        <label>协作平台用户名</label>
+        <input type="text" id="username" placeholder="如 dingcj">
+      </div>
+      <div class="form-group">
+        <label>协作平台密码</label>
+        <input type="password" id="password" placeholder="输入密码">
+      </div>
+      <button onclick="doLogin()">生成我的专属配置</button>
+
+      <div id="error-box" class="error-box"></div>
+
+      <div id="result-box" class="result-box">
+        <h3 style="margin-top:0; color:#065f46;">🎉 验证成功！欢迎，<span id="res-name"></span></h3>
+        <p style="font-size:14px; color:#047857;">已为你生成专属配置。复制下方代码直接粘贴到客户端即可永久免密使用：</p>
+        
+        <p><strong>Cursor 配置（Settings -> Features -> MCP Servers）：</strong></p>
+        <pre id="cursor-cfg"></pre>
+
+        <p><strong>Claude Desktop 配置（claude_desktop_config.json）：</strong></p>
+        <pre id="claude-cfg"></pre>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>💬 步骤二：在 AI 对话中直接使用</h2>
+      <p>配置好后，直接在 Cursor 或 Claude 对话框中与 AI 自然交流：</p>
+      <ul>
+        <li><code>查一下我当前有哪些进行中的任务</code></li>
+        <li><code>帮我在 #xxxxx 任务上填报今天 2 小时工时，备注是...</code></li>
+        <li><code>汇总我本周的工时明细</code></li>
+      </ul>
+    </div>
   </div>
 
   <script>
+    const EXPECTED_KEY = "${DEPARTMENT_KEY}";
+    let currentKey = new URLSearchParams(window.location.search).get('key') || sessionStorage.getItem('dept_key') || '';
+
+    function checkAuth() {
+      if (currentKey === EXPECTED_KEY) {
+        document.getElementById('gatekeeper-card').style.display = 'none';
+        document.getElementById('main-content').style.display = 'block';
+      } else {
+        document.getElementById('gatekeeper-card').style.display = 'block';
+        document.getElementById('main-content').style.display = 'none';
+      }
+    }
+
+    function unlockPortal() {
+      const val = document.getElementById('dept-key-input').value.trim();
+      if (val === EXPECTED_KEY) {
+        currentKey = val;
+        sessionStorage.setItem('dept_key', val);
+        checkAuth();
+      } else {
+        const err = document.getElementById('gate-error');
+        err.innerText = '口令错误，请向部门管理员获取正确的部门口令。';
+        err.style.display = 'block';
+      }
+    }
+
     async function doLogin() {
       const u = document.getElementById('username').value.trim();
       const p = document.getElementById('password').value.trim();
@@ -159,17 +222,17 @@ async function startSse(port = 3333, host = '0.0.0.0') {
       }
 
       try {
-        const res = await fetch('/api/login', {
+        const res = await fetch('/api/login?key=' + encodeURIComponent(currentKey), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username: u, password: p })
+          body: JSON.stringify({ username: u, password: p, departmentKey: currentKey })
         });
         const data = await res.json();
         if (!res.ok || data.error) {
           throw new Error(data.error || '登录失败');
         }
 
-        const myUrl = window.location.origin + '/sse?apiKey=' + data.user.apiKey;
+        const myUrl = window.location.origin + '/sse?key=' + encodeURIComponent(currentKey) + '&apiKey=' + data.user.apiKey;
         document.getElementById('res-name').innerText = data.user.fullName + ' (' + data.user.username + ')';
 
         document.getElementById('cursor-cfg').innerText = JSON.stringify({
@@ -192,18 +255,34 @@ async function startSse(port = 3333, host = '0.0.0.0') {
         errBox.style.display = 'block';
       }
     }
+
+    checkAuth();
   </script>
 </body>
 </html>
     `);
     });
-    // SSE endpoint for client connection
+    // SSE endpoint for client connection (Protected with Department Key + Concurrency Limit)
     app.get('/sse', async (req, res) => {
-        console.log(`[SSE] New incoming connection from ${req.ip}`);
+        if (!isKeyValid(req)) {
+            res.status(403).send('Forbidden: Invalid or missing department key (?key=...)');
+            return;
+        }
+        const clientIp = req.ip || req.socket.remoteAddress || 'unknown';
+        const ipConnections = Array.from(sessions.values()).filter((s) => s.clientIp === clientIp).length;
+        if (ipConnections >= 10) {
+            res.status(429).send('Too Many Connections: Exceeded maximum concurrent connections per IP');
+            return;
+        }
+        if (sessions.size >= 100) {
+            res.status(503).send('Service Busy: Server reached maximum connection capacity');
+            return;
+        }
+        console.log(`[SSE] Authorized incoming connection from ${clientIp}`);
         const transport = new SSEServerTransport('/messages', res);
         const sessionId = transport.sessionId;
         const server = createServer(authManager, () => sessionId);
-        sessions.set(sessionId, { transport, server });
+        sessions.set(sessionId, { transport, server, clientIp });
         // Check if user passed personal API Key in URL query or Authorization header
         const apiKeyFromQuery = req.query.apiKey;
         const authHeader = req.headers.authorization;
@@ -251,6 +330,7 @@ async function startSse(port = 3333, host = '0.0.0.0') {
         console.log(`PIX Collaboration MCP Server running on SSE: http://${host}:${port}`);
         console.log(`SSE endpoint: http://${host}:${port}/sse`);
         console.log(`Health endpoint: http://${host}:${port}/health`);
+        console.log(`Department Key Protection: ACTIVE (default: ${DEPARTMENT_KEY})`);
     });
 }
 // Parse command line arguments
