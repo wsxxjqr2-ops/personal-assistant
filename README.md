@@ -8,6 +8,10 @@ Codex personal assistant skills and helper scripts.
 - `collaboration-platform-assistant`: read and write Redmine-style collaboration platform tasks and time entries.
 - `ogsm-writer`: help draft OGSM content.
 
+## MCP Servers
+
+- [`pix-collaboration-mcp`](pix-collaboration-mcp/README.md): Model Context Protocol (MCP) server for PIX collaboration platform with multi-tenant auth, issue management, and work-log tracking. Supports STDIO and SSE/HTTP deployment.
+
 ## Codex Skill Layout
 
 Each skill is stored as a standard Codex skill folder:
