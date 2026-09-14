@@ -245,7 +245,7 @@ async function startSse(port = 3333, host = '0.0.0.0') {
             res.status(404).send('Session not found or expired');
             return;
         }
-        await session.transport.handlePostMessage(req, res);
+        await session.transport.handlePostMessage(req, res, req.body);
     });
     app.listen(port, host, () => {
         console.log(`PIX Collaboration MCP Server running on SSE: http://${host}:${port}`);

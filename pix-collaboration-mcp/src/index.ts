@@ -263,7 +263,7 @@ async function startSse(port = 3333, host = '0.0.0.0') {
       return;
     }
 
-    await session.transport.handlePostMessage(req, res);
+    await session.transport.handlePostMessage(req, res, req.body);
   });
 
   app.listen(port, host, () => {
