@@ -21,17 +21,19 @@ function createServer(authManager, getSessionId) {
     return server;
 }
 async function startStdio() {
-    const authManager = new AuthManager();
+    const authManager = new AuthManager(process.env.REDMINE_BASE_URL, false);
     const server = createServer(authManager, () => undefined);
     const transport = new StdioServerTransport();
     await server.connect(transport);
     console.error('PIX Collaboration MCP Server running via stdio');
 }
 async function startSse(port = 3333, host = '0.0.0.0') {
-    const authManager = new AuthManager();
+    // Pass isServerMode = true so sessions are strictly isolated in-memory per user
+    const authManager = new AuthManager(process.env.REDMINE_BASE_URL, true);
     const app = express();
     app.use(cors());
     app.use(express.json());
+    app.use(express.urlencoded({ extended: true }));
     const sessions = new Map();
     // Health check endpoint
     app.get('/health', (_req, res) => {
@@ -42,48 +44,155 @@ async function startSse(port = 3333, host = '0.0.0.0') {
             time: new Date().toISOString(),
         });
     });
-    // Optional Web Login / Setup Page for colleagues
+    // API for Web Login to get personal connection URL
+    app.post('/api/login', async (req, res) => {
+        const { username, password } = req.body;
+        if (!username || !password) {
+            res.status(400).json({ error: '请提供用户名和密码' });
+            return;
+        }
+        try {
+            // Authenticate against Redmine
+            const session = await authManager.loginWithPassword(username, password);
+            res.json({
+                success: true,
+                user: {
+                    id: session.userId,
+                    username: session.username,
+                    fullName: session.fullName,
+                    apiKey: session.apiKey,
+                },
+            });
+        }
+        catch (err) {
+            res.status(401).json({ error: err.message || '认证失败' });
+        }
+    });
+    // Department Web Setup Portal
     app.get('/', (_req, res) => {
         res.send(`
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <title>PIX 协作平台 MCP 服务</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PIX 协作平台 MCP 服务 - 部门统一接入中心</title>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 720px; margin: 40px auto; padding: 0 20px; color: #333; line-height: 1.6; }
-    h1 { color: #1e293b; border-bottom: 2px solid #e2e8f0; padding-bottom: 12px; }
-    .badge { display: inline-block; background: #22c55e; color: white; padding: 2px 8px; border-radius: 4px; font-size: 13px; font-weight: bold; }
-    pre { background: #f8fafc; border: 1px solid #e2e8f0; padding: 16px; border-radius: 8px; overflow-x: auto; font-size: 13px; }
-    .card { background: #f1f5f9; padding: 18px; border-radius: 8px; margin: 20px 0; }
-    code { color: #0f172a; font-weight: 600; }
+    * { box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 800px; margin: 30px auto; padding: 0 20px; color: #1e293b; line-height: 1.6; background: #f8fafc; }
+    .header { background: #fff; padding: 24px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    h1 { margin: 0 0 8px; font-size: 24px; color: #0f172a; }
+    .badge { display: inline-block; background: #10b981; color: white; padding: 2px 8px; border-radius: 9999px; font-size: 12px; font-weight: 600; vertical-align: middle; }
+    .card { background: #fff; padding: 24px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    h2 { font-size: 18px; margin-top: 0; color: #1e293b; border-bottom: 1px solid #f1f5f9; padding-bottom: 10px; }
+    .form-group { margin-bottom: 14px; }
+    label { display: block; font-weight: 600; font-size: 14px; margin-bottom: 6px; }
+    input[type="text"], input[type="password"] { width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; }
+    button { background: #2563eb; color: white; border: none; padding: 10px 20px; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+    button:hover { background: #1d4ed8; }
+    pre { background: #0f172a; color: #f8fafc; padding: 16px; border-radius: 8px; overflow-x: auto; font-size: 13px; line-height: 1.5; }
+    .result-box { display: none; background: #ecfdf5; border: 1px solid #a7f3d0; padding: 16px; border-radius: 8px; margin-top: 16px; }
+    .error-box { display: none; background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; padding: 12px; border-radius: 6px; margin-top: 12px; }
+    code { font-family: monospace; background: #e2e8f0; padding: 2px 6px; border-radius: 4px; font-size: 13px; }
   </style>
 </head>
 <body>
-  <h1>PIX 协作平台 MCP 服务 <span class="badge">运行中</span></h1>
-  <p>这是面向部门共享的 <strong>PIX/RUBYLOFT 协作平台 (rd.pixmoving.city)</strong> MCP 集中接入端点。</p>
-  
-  <div class="card">
-    <h3>🔗 远程 SSE 连接端点</h3>
-    <p><code>http://&lt;服务器IP&gt;:${port}/sse</code></p>
+  <div class="header">
+    <h1>PIX 协作平台 MCP 服务 <span class="badge">已上线</span></h1>
+    <p style="margin: 0; color: #64748b;">面向全员的智能任务管理与工时填报助理服务 (对接 <code>rd.pixmoving.city</code>)</p>
   </div>
 
-  <h3>💡 Cursor / Claude Desktop / Antigravity 配置指南</h3>
-  <p>将以下配置添加到你的客户端 MCP 配置文件中：</p>
-  <pre>{
+  <div class="card">
+    <h2>🔑 方式一：获取专属连接配置（最推荐，一次配置永久免密）</h2>
+    <p style="color: #64748b; font-size: 14px;">输入你的协作平台账号密码，系统将自动换取你的专属 API Key 并生成专属配置：</p>
+    
+    <div class="form-group">
+      <label>协作平台用户名</label>
+      <input type="text" id="username" placeholder="如 dingcj">
+    </div>
+    <div class="form-group">
+      <label>协作平台密码</label>
+      <input type="password" id="password" placeholder="输入密码">
+    </div>
+    <button onclick="doLogin()">生成我的专属配置</button>
+
+    <div id="error-box" class="error-box"></div>
+
+    <div id="result-box" class="result-box">
+      <h3 style="margin-top:0; color:#065f46;">🎉 验证成功！欢迎，<span id="res-name"></span></h3>
+      <p style="font-size:14px; color:#047857;">已为你生成专属配置。复制下方代码直接粘贴到客户端即可永久免密使用：</p>
+      
+      <p><strong>Cursor 配置（Settings -> Features -> MCP Servers）：</strong></p>
+      <pre id="cursor-cfg"></pre>
+
+      <p><strong>Claude Desktop 配置（claude_desktop_config.json）：</strong></p>
+      <pre id="claude-cfg"></pre>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>💬 方式二：在对话内直接登录（零配置）</h2>
+    <p>如果你不介意每次会话登录，可以直接使用公共端点：</p>
+    <pre>{
   "mcpServers": {
     "pix-collaboration": {
-      "url": "http://&lt;服务器IP&gt;:${port}/sse"
+      "url": window.location.origin + "/sse"
     }
   }
 }</pre>
+    <p>连上后直接在 AI 聊天框里说：<code>登录协作平台，账号 xxx 密码 xxx</code>，AI 会调用 <code>login</code> 工具为你当前会话独立绑定身份。</p>
+  </div>
 
-  <h3>✨ 首次使用说明</h3>
-  <ol>
-    <li>连接成功后，在聊天窗口直接对 AI 说：<strong>“登录协作平台”</strong>；</li>
-    <li>AI 会引导你调用 <code>login</code> 工具输入账号密码（或 API Key）；</li>
-    <li>验证成功后，即可直接使用：<strong>“查我的任务”</strong>、<strong>“帮我填今天2小时工时”</strong>、<strong>“查看本周工时汇总”</strong>等。</li>
-  </ol>
+  <script>
+    async function doLogin() {
+      const u = document.getElementById('username').value.trim();
+      const p = document.getElementById('password').value.trim();
+      const errBox = document.getElementById('error-box');
+      const resBox = document.getElementById('result-box');
+      errBox.style.display = 'none';
+      resBox.style.display = 'none';
+
+      if (!u || !p) {
+        errBox.innerText = '请填写用户名和密码';
+        errBox.style.display = 'block';
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: u, password: p })
+        });
+        const data = await res.json();
+        if (!res.ok || data.error) {
+          throw new Error(data.error || '登录失败');
+        }
+
+        const myUrl = window.location.origin + '/sse?apiKey=' + data.user.apiKey;
+        document.getElementById('res-name').innerText = data.user.fullName + ' (' + data.user.username + ')';
+
+        document.getElementById('cursor-cfg').innerText = JSON.stringify({
+          name: "pix-collaboration",
+          type: "sse",
+          url: myUrl
+        }, null, 2);
+
+        document.getElementById('claude-cfg').innerText = JSON.stringify({
+          mcpServers: {
+            "pix-collaboration": {
+              url: myUrl
+            }
+          }
+        }, null, 2);
+
+        resBox.style.display = 'block';
+      } catch (e) {
+        errBox.innerText = e.message;
+        errBox.style.display = 'block';
+      }
+    }
+  </script>
 </body>
 </html>
     `);
@@ -95,6 +204,23 @@ async function startSse(port = 3333, host = '0.0.0.0') {
         const sessionId = transport.sessionId;
         const server = createServer(authManager, () => sessionId);
         sessions.set(sessionId, { transport, server });
+        // Check if user passed personal API Key in URL query or Authorization header
+        const apiKeyFromQuery = req.query.apiKey;
+        const authHeader = req.headers.authorization;
+        let apiKey = apiKeyFromQuery;
+        if (!apiKey && authHeader?.startsWith('Bearer ')) {
+            apiKey = authHeader.slice(7).trim();
+        }
+        if (apiKey) {
+            authManager
+                .loginWithApiKey(apiKey, sessionId)
+                .then((sess) => {
+                console.log(`[SSE] Session ${sessionId} pre-authenticated as ${sess.fullName} (${sess.username})`);
+            })
+                .catch((err) => {
+                console.warn(`[SSE] Pre-auth failed for session ${sessionId}:`, err.message);
+            });
+        }
         transport.onclose = () => {
             console.log(`[SSE] Session closed: ${sessionId}`);
             sessions.delete(sessionId);

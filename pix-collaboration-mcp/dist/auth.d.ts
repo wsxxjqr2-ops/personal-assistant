@@ -1,12 +1,19 @@
 import { UserSession } from './types.js';
 export declare class AuthManager {
     private defaultBaseUrl;
+    private isServerMode;
     private memorySessions;
-    constructor(defaultBaseUrl?: string);
+    constructor(defaultBaseUrl?: string, isServerMode?: boolean);
     /**
-     * Resolve active session for a given sessionId (or fallback to local file / env var)
+     * Resolve active session for a given sessionId.
+     * In server mode (SSE), sessions are strictly isolated in memory per connection.
+     * In local mode (STDIO), it can fall back to the local auth.json file.
      */
     getSession(sessionId?: string): UserSession | null;
+    /**
+     * Set pre-authenticated session for a connection (e.g. from apiKey query param or header)
+     */
+    setSession(sessionId: string, session: UserSession): void;
     /**
      * Authenticate using username and password via Basic Auth to Redmine
      */

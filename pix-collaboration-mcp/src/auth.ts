@@ -9,23 +9,38 @@ const CONFIG_FILE = path.join(CONFIG_DIR, 'auth.json');
 
 export class AuthManager {
   private defaultBaseUrl: string;
+  private isServerMode: boolean;
   private memorySessions: Map<string, UserSession> = new Map();
 
-  constructor(defaultBaseUrl = DEFAULT_BASE_URL) {
+  constructor(defaultBaseUrl = DEFAULT_BASE_URL, isServerMode = false) {
     this.defaultBaseUrl = defaultBaseUrl.replace(/\/+$/, '');
+    this.isServerMode = isServerMode;
   }
 
   /**
-   * Resolve active session for a given sessionId (or fallback to local file / env var)
+   * Resolve active session for a given sessionId.
+   * In server mode (SSE), sessions are strictly isolated in memory per connection.
+   * In local mode (STDIO), it can fall back to the local auth.json file.
    */
   public getSession(sessionId?: string): UserSession | null {
-    if (sessionId && this.memorySessions.has(sessionId)) {
-      const sess = this.memorySessions.get(sessionId)!;
-      sess.lastActive = Date.now();
-      return sess;
+    if (sessionId) {
+      if (this.memorySessions.has(sessionId)) {
+        const sess = this.memorySessions.get(sessionId)!;
+        sess.lastActive = Date.now();
+        return sess;
+      }
+      // In server mode, an unauthenticated session MUST NOT fall back to server-side files
+      if (this.isServerMode) {
+        return null;
+      }
     }
 
-    // If env var is set, use it as default
+    // In server mode without sessionId, return null
+    if (this.isServerMode) {
+      return null;
+    }
+
+    // Single-user local STDIO fallback
     if (process.env.REDMINE_API_KEY) {
       return {
         userId: Number(process.env.REDMINE_USER_ID || 0),
@@ -47,6 +62,13 @@ export class AuthManager {
     }
 
     return null;
+  }
+
+  /**
+   * Set pre-authenticated session for a connection (e.g. from apiKey query param or header)
+   */
+  public setSession(sessionId: string, session: UserSession): void {
+    this.memorySessions.set(sessionId, session);
   }
 
   /**
@@ -96,8 +118,11 @@ export class AuthManager {
     if (sessionId) {
       this.memorySessions.set(sessionId, session);
     }
-    // Also save locally for persistence
-    this.saveToFile(session);
+
+    // Only persist to server filesystem if running in local single-user mode
+    if (!this.isServerMode) {
+      this.saveToFile(session);
+    }
 
     return session;
   }
@@ -140,7 +165,10 @@ export class AuthManager {
     if (sessionId) {
       this.memorySessions.set(sessionId, session);
     }
-    this.saveToFile(session);
+
+    if (!this.isServerMode) {
+      this.saveToFile(session);
+    }
 
     return session;
   }
@@ -152,13 +180,14 @@ export class AuthManager {
     if (sessionId) {
       this.memorySessions.delete(sessionId);
     }
-    // Remove local file
-    try {
-      if (fs.existsSync(CONFIG_FILE)) {
-        fs.unlinkSync(CONFIG_FILE);
+    if (!this.isServerMode) {
+      try {
+        if (fs.existsSync(CONFIG_FILE)) {
+          fs.unlinkSync(CONFIG_FILE);
+        }
+      } catch {
+        // ignore
       }
-    } catch {
-      // ignore
     }
   }
 
