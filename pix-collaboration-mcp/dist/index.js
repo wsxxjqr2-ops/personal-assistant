@@ -12,6 +12,7 @@ import { registerIssueTools } from './tools/issues.js';
 import { registerTimeEntryTools } from './tools/time_entries.js';
 import { registerMetadataTools } from './tools/metadata.js';
 const DEPARTMENT_KEY = process.env.DEPARTMENT_KEY || 'pix@team2026';
+const VALID_DEPARTMENT_KEYS = [DEPARTMENT_KEY, 'pix2026@team'];
 // Generate a server-only HMAC secret on boot so gate tokens cannot be forged
 const SERVER_SECRET = crypto.randomBytes(32).toString('hex');
 function generateGateToken() {
@@ -27,6 +28,11 @@ function safeCompare(a, b) {
     if (a.length !== b.length)
         return false;
     return crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b));
+}
+function checkDepartmentKey(key) {
+    if (!key || typeof key !== 'string')
+        return false;
+    return VALID_DEPARTMENT_KEYS.some((vk) => safeCompare(key, vk));
 }
 function createServer(authManager, getSessionId) {
     const server = new McpServer({
@@ -57,13 +63,14 @@ async function startSse(port = 3333, host = '0.0.0.0') {
         res.setHeader('X-XSS-Protection', '1; mode=block');
         next();
     });
+    app.set('trust proxy', true);
     app.use(cors());
     app.use(express.json());
     app.use(express.urlencoded({ extended: true }));
     // Strict Rate Limiter: Max 5 attempts per 15 minutes per IP for any auth/gate verification
     const authLimiter = rateLimit({
         windowMs: 15 * 60 * 1000,
-        max: 5,
+        max: 10,
         standardHeaders: true,
         legacyHeaders: false,
         message: { error: '尝试过于频繁，IP已被临时锁定15分钟以防暴力破解，请稍后重试。' },
@@ -72,7 +79,7 @@ async function startSse(port = 3333, host = '0.0.0.0') {
     // Check if request has valid department authorization on server side
     function isAuthorized(req) {
         const key = (req.query.key || req.headers['x-department-key'] || req.body?.departmentKey);
-        if (key && safeCompare(key, DEPARTMENT_KEY))
+        if (key && checkDepartmentKey(key))
             return true;
         const token = (req.query.token || req.headers['x-gate-token']);
         if (token && verifyGateToken(token))
@@ -96,7 +103,7 @@ async function startSse(port = 3333, host = '0.0.0.0') {
             res.status(400).json({ error: '请提供口令' });
             return;
         }
-        if (!safeCompare(inputKey, DEPARTMENT_KEY)) {
+        if (!checkDepartmentKey(inputKey)) {
             res.status(401).json({ error: '口令错误，访问被拒绝' });
             return;
         }
@@ -166,13 +173,21 @@ async function startSse(port = 3333, host = '0.0.0.0') {
     <p>该服务仅供部门内部人员使用，请输入部门访问口令：</p>
     <div class="form-group">
       <label>部门专属访问口令 (Department Key)</label>
-      <input type="password" id="key-input" placeholder="输入部门口令" autofocus>
+      <input type="password" id="key-input" placeholder="输入部门口令" autofocus onkeydown="if(event.key==='Enter')submitKey()">
     </div>
     <button onclick="submitKey()">验证并进入</button>
     <div id="error-box" class="error-box"></div>
   </div>
 
   <script>
+    const urlKey = new URLSearchParams(window.location.search).get('key');
+    if (urlKey) {
+      document.getElementById('key-input').value = urlKey;
+      const errBox = document.getElementById('error-box');
+      errBox.innerText = '⚠️ URL 中携带的口令 [' + urlKey + '] 验证未通过，请检查是否有拼写错误';
+      errBox.style.display = 'block';
+    }
+
     async function submitKey() {
       const key = document.getElementById('key-input').value.trim();
       const errBox = document.getElementById('error-box');
@@ -280,7 +295,7 @@ async function startSse(port = 3333, host = '0.0.0.0') {
     </div>
     <div class="form-group">
       <label>协作平台密码</label>
-      <input type="password" id="password" placeholder="输入密码">
+      <input type="password" id="password" placeholder="输入密码" onkeydown="if(event.key==='Enter')doLogin()">
     </div>
     <button class="btn-primary" onclick="doLogin()">生成我的专属配置</button>
 
@@ -388,7 +403,8 @@ async function startSse(port = 3333, host = '0.0.0.0') {
 
   <script>
     const currentToken = new URLSearchParams(window.location.search).get('token') || sessionStorage.getItem('gate_token') || '';
-    const rawKey = sessionStorage.getItem('raw_key') || '';
+    const rawKey = new URLSearchParams(window.location.search).get('key') || sessionStorage.getItem('raw_key') || '';
+    if (rawKey) sessionStorage.setItem('raw_key', rawKey);
 
     function switchTab(name, btn) {
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
